@@ -58,9 +58,10 @@ class ExceptionNotifier
       end
     end
     
-    def background_exception_notification(env, exception)
+    def background_exception_notification(env, exception, job_name)
       @env        = env
       @exception  = exception
+      @job_name   = job_name
       @options    = (env['exception_notifier.options'] || {}).reverse_merge(self.class.default_options)
       @backtrace  = clean_backtrace(exception)
       @sections   = %w(backtrace)
@@ -70,7 +71,7 @@ class ExceptionNotifier
         instance_variable_set("@#{name}", value)
       end
 
-      prefix   = "#{@options[:email_prefix]}"
+      prefix   = "#{@options[:email_prefix]}#{@job_name}"
       subject  = "#{prefix} (#{@exception.class}) #{@exception.message.inspect}"
 
       mail(:to => @options[:exception_recipients], :from => @options[:sender_address], :subject => subject) do |format|
