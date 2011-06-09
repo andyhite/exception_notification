@@ -58,24 +58,11 @@ class ExceptionNotifier
       end
     end
     
-    def background_exception_notification(env, exception, job_name)
-      @env        = env
-      @exception  = exception
-      @job_name   = job_name
-      @options    = (env['exception_notifier.options'] || {}).reverse_merge(self.class.default_options)
-      @backtrace  = clean_backtrace(exception)
-      @sections   = %w(backtrace)
-      data        = env['exception_notifier.exception_data'] || {}
-
-      data.each do |name, value|
-        instance_variable_set("@#{name}", value)
-      end
-
-      prefix   = "#{@options[:email_prefix]}#{@job_name}"
-      subject  = "#{prefix} (#{@exception.class}) #{@exception.message.inspect}"
-
-      mail(:to => @options[:exception_recipients], :from => @options[:sender_address], :subject => subject) do |format|
-        format.text { render "#{mailer_name}/background_exception_notification" }
+    def background_exception_notification(env, exception)
+      if notifier = Rails.application.config.middleware.detect { |x| x.klass == ExceptionNotifier }
+        env['exception_notifier.options'] = notifier.args.first || {}                   
+        ExceptionNotifier::Notifier.exception_notification(env, exception).deliver
+        env['exception_notifier.delivered'] = true
       end
     end
 
